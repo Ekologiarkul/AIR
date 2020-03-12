@@ -1,0 +1,206 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+New try to merge wind data from site 62 together with general data from site 72. Problem is that timestamps are not the same. 
+
+
+downloading the two datasets and formatting timeseries
+```{r}
+dev72 <- read.csv("SN00072_26feb19-26feb20.csv", header = TRUE)
+dev62 <- read.csv("WIND_62_26feb19-26feb20.csv", header = TRUE)
+
+```
+
+```{r}
+library(anytime)
+dev72$timestamp_local <- anytime(as.factor(dev72$timestamp_local))
+dev62$timestamp_local <- anytime(as.factor(dev62$timestamp_local))
+```
+
+
+
+Merging directly on timestamps, not good
+```{r}
+time72 <- dev72$timestamp_local
+time62 <- dev62$timestamp_local
+
+# exact matching results in insane loss of time
+secMerge <- merge(dev72,
+                  dev62,
+                  by = "timestamp_local")
+length(secMerge$timestamp_local)
+```
+this results in a exact matching of timestamps which only yields ca 2000 datapoints...
+
+
+
+Merging after rounding to closest minute
+```{r}
+# Merge works reeeeeally fast
+
+# creating new vectors to work with
+dev72_min <- dev72
+dev62_min <- dev62
+
+# rounding to closest minutes, meaning all values will end on :00
+dev72_min$timestamp_local <- as.POSIXct(round(dev72_min$timestamp_local, units = "min"))
+dev62_min$timestamp_local <- as.POSIXct(round(dev62_min$timestamp_local, units = "min"))
+
+#merging together dataframes, getting joint timestamps. Now one could use y.wind_dir and y.wind_speed together with any x. values
+
+minuteMerge <- merge(dev72_min,
+                  dev62_min,
+                  by = "timestamp_local")
+
+# loss of about 70,000 timestasds
+length(minuteMerge$timestamp_local)
+length(dev72$timestamp_local)
+length(dev62$timestamp_local)
+
+# So i would actually only need the timestamps and winddata from minutemerge and then get that into a new datafram with all pollution data from dev72, and then find a way to "fill in the blanks" of wind data, possibly with the last known value or some kind of extrapolation?
+
+
+
+
+```
+
+
+
+A way of creating time intervalls
+```{r}
+# Creating a 10s intervall from a datetime x 
+j <- 5
+i <- (x-j)%--%(x+j)
+
+
+```
+
+
+
+
+
+Attempting a left join with dplyr library - not even started - 
+```{r}
+library(dplyr)
+dplr <- left_join()
+
+
+```
+
+
+
+
+
+```{r}
+# Too slow, might be because I dont understand 
+
+
+
+#  Based on following solution:
+#  https://stackoverflow.com/questions/42507882/merge-two-dataframes-if-timestamp-of-x-is-#  within-time-interval-of-y
+
+# Again, creating new dataframes, this time stripping down 62 to hopefully speed things up
+
+#variable for interval length, length = tdiff*2
+tdiff <- 5
+
+# full version of 72
+sqldev72 <- dev72
+
+
+# short version of 72
+library(dplyr)
+sqldev72_s <- slice(sqldev72, 1:100)
+
+
+# pulling relevant columns from dev62 to new data frame sqldev62
+# also creatign columns for interval check. Easy to manage via tdiff 
+ws_62 <- dev62$wind_speed
+wd_62 <- dev62$wind_dir
+tsl_62 <- dev62$timestamp_local
+start_time <- tsl_62-tdiff
+end_time <- tsl_62+tdiff
+sqldev62 <- data.frame(ws_62,wd_62,tsl_62, start_time, end_time)
+
+# creating shorter data frames for quicker testing
+library(dplyr)
+sqldev72_s <- slice(sqldev72, 1:100)
+sqldev62_s <- slice(sqldev62, 1:100)
+
+
+
+library(sqldf)
+
+dev72_w62_s <- sqldf('select *
+              from sqldev72_s
+              left join sqldev62_s
+              on sqldev72_s.timestamp_local >= sqldev62_s.start_time
+              AND sqldev72_s.timestamp_local <= sqldev62_s.end_time
+          ')
+
+# Tar 
+dev72_w62 <- sqldf('select *
+              from sqldev72
+              left join sqldev62
+              on sqldev72.timestamp_local >= sqldev62.start_time
+              AND sqldev72.timestamp_local <= sqldev62.end_time
+          ')
+
+dev72_w62
+
+```
+
+
+
+
+
+```{r}
+From Example 
+https://stackoverflow.com/questions/42507882/merge-two-dataframes-if-timestamp-of-x-is-within-time-interval-of-y
+```{r}
+DF1 <- structure(list(Airspeed = c(582L, 478L, 524L),
+                      Outbound.Track = c(119L, 78L,134L),
+                      Rem.Ground.Dist = c(369L, 119L, 196L),
+                      Timestamp=structure(c(1451636817.52577,
+                                            1451638203.76569,
+                                            1451637753.43511),
+                      class = c("POSIXct", "POSIXt"), tzone = "")),
+                      .Names =c("Airspeed",
+                                "Outbound.Track",
+                                "Rem.Ground.Dist",
+                                "Timestamp"),
+                      row.names =c(1L, 12L, 7L),
+                      class = c("data.table", "data.frame"))
+
+DF2 <- structure(list(Temperature = c(-18.5, -60, -35),
+                      Wind_Direction = c("324", "335", "313"),
+                      Wind_Speed = c("032", "041", "056"),
+                      onebef =structure(c(1451629620, 1451634660, 1451637000),
+                                        class = c("POSIXct", "POSIXt"), tzone = ""),
+                      oneaft = structure(c(1451636820, 1451641860, 1451644200),
+                      class =c("POSIXct", "POSIXt"))), .Names = c("Temperature",
+                                                                  "Wind_Direction",
+                                                                  "Wind_Speed","onebef",
+                                                                  "oneaft"),
+                      row.names = c(1358L, 1654L, 2068L),
+                      class = "data.frame")
+
+head(DF1)
+head(DF2)
+
+library(sqldf)
+
+df<-sqldf('select d1.*,d2.*
+           from DF1 d1
+           left join DF2 d2
+             on d1.Timestamp >= d2.onebef
+               AND d1.Timestamp <= d2.oneaft
+          ')
+df
+
+```
+
+
+

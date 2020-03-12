@@ -1,0 +1,148 @@
+---
+title: "Basic work with a month of data: jan24 -feb24 2020"
+output: html_notebook
+---
+
+Key takeaways:
+
+  - something weird happend 31st januari
+  - NO_we have a very dense distribution 
+  - 
+  
+
+
+
+
+
+
+
+In this notebook we will start to look at the data from device SN000-072 of the EastBoston Network. Currently only raw data can be analyzed and this leads to some factors being more interesting than others. Main focus will include: 
+  - time series
+  - pm1 / 2.5 / 10
+  - bins 0/2/6/10
+  - temperature & solar 
+  
+specificly, NO_we and CO will be looked at, determining duty cycles, up/down and when particle/gas are working/not working
+
+will try to make 3-5 key insights 
+
+Step 1
+
+Importing data for one month from a local .csv file. Also formatting the timestamp values to POSIXct format. Sample output and sumamry of data is included. Takes awhile to chug through the anytime step. Better solution is probably out there 
+
+
+```{r}
+monthData <- read.csv("oneMonth_feb24.csv", header = TRUE)
+names(monthData)
+library(anytime)
+monthData$timestamp <- anytime(as.factor(monthData$timestamp)) 
+monthTime[1:1]
+```
+Starting with some basic metereological data:
+
+1. solar "solar" 
+2. wind "wind_speed"
+3. temp "temp_box" 
+4. pressure "pressure"
+
+
+
+```{r}
+names(monthData)
+
+plot(monthData$timestamp, monthData$solar, type = "l", col = "yellow", main = "solar", xlab = "date", ylab = "solar (raw voltages) ")
+
+plot(monthData$timestamp, monthData$wind_speed, type = "l",main = "wind speed", xlab = "date", ylab = "wind speed (raw voltages) ")
+
+plot(monthData$timestamp, monthData$temp_box, type = "l", main = "temperature", xlab = "date", ylab = "temperature (raw voltages) " )
+
+plot(monthData$timestamp, monthData$pressure, type = "l", main = "pressure", xlab = "date", ylab = "pressure (raw voltages) ")
+
+```
+
+
+First pollutant/chemical group: Nitrogen Oxides
+
+FIRST NOTES: 
+
+1. very "tight" gathered data, around 660 with some very high spikes
+
+
+
+
+```{r}
+summary(monthData$no_we)
+
+dens <- density(monthData$no_we, na.rm = TRUE)
+plot(dens, main = "Density plot of nitrogen dioxide",
+xlab = "Nitrogen dioxide (raw voltages)")
+
+plot(monthData$timestamp, monthData$no_we, type = "l", xlab = "year", ylab = "Nitrogen oxides (raw voltages)")
+
+```
+
+
+
+
+Second pollutant: Carbon monoxide
+
+```{r}
+summary(monthData$co_we)
+
+dens <- density(monthData$co_we, na.rm = TRUE)
+plot(dens, main = "Density plot of carbon monoxide",
+xlab = "Nitrogen dioxide (raw voltages)")
+
+plot(monthData$timestamp, monthData$co_we, type = "l", xlab = "date", ylab = "carbon monoxide (raw voltages)")
+```
+
+
+Time for the next funny thing, Particulate matter (the trusted ones)
+
+  - PM1 
+  - PM2.5
+  - PM10 
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
