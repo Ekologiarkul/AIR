@@ -1,0 +1,53 @@
+---
+title: "Mergin two data frames with uneven times"
+output: html_notebook
+---
+
+
+```{r}
+dev72 <- read.csv("SN00072_26feb19-26feb20.csv", header = TRUE)
+dev62 <- read.csv("WIND_62_26feb19-26feb20.csv", header = TRUE)
+library(anytime)
+dev72$timestamp_local <- anytime(as.factor(dev72$timestamp_local))
+dev62$timestamp_local <- anytime(as.factor(dev62$timestamp_local))
+```
+
+
+
+```{r}
+
+library(lubridate)
+
+# puliing out relevant timestampvectors
+time72 <- dev72$timestamp_local
+time62 <- dev62$timestamp_local
+
+# creating short test vactor to save time and sanity
+short72 <- dev72$timestamp_local[1:10] 
+short62 <- dev62$timestamp_local[1:10]
+
+# these vectors should be remade into intervalls that can be compared 
+
+sint72 <- c()
+diff  <- 15
+(short72[1]-diff)%--%(short72[1]+diff)
+for (i in 1:length(short72)) {
+  x <- as.POSIXct.Date((short72[i]-diff)%--%(short72[i]+diff))
+  sint72 <- c(sint72,x)
+}
+
+sint72
+
+sint62 <- c()
+for ( i in 1:length(short62)) {
+  sint62[i] <- (short62[i]-diff)%--%(short62[i]+diff)
+}
+
+sint72
+sint62
+
+
+
+
+```
+
